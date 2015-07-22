@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# source the ciop functions (e.g. ciop-log)
+source ${ciop_job_include}
+
+while read -r line; do
+  echo $line
+done | sort | /application/soilfrost/bin/find_s1_matches | ciop-publish -s
+
+
+exit 0

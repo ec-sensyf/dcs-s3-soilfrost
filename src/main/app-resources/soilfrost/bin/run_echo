@@ -1,0 +1,32 @@
+#!/bin/bash
+
+# source the ciop functions (e.g. ciop-log)
+source ${ciop_job_include}
+
+ciop-log INFO "args: $@"
+
+hadoop dfs -cat ${ciop_wf_run_root}/workflow-params.xml | while read -r params; do
+    ciop-log INFO "ECHO WFPARAM <$params>"
+done
+
+echo INFO toyparam $(ciop-getparam toyparam)
+echo INFO toy-parameter $(ciop-getparam toy-parameter)
+
+# while read -r filename; do
+#     echo INFO "reading $file"
+#     while read -r line; do
+#	 echo INFO "read line <$line>"
+#     done < $filename
+# done
+
+env | while read -r var; do
+    ciop-log INFO "ECHO ENV <$var>"
+done
+
+while read -r line; do
+    ciop-log INFO "ECHO input line <$line>"
+done
+
+
+
+exit 0

@@ -1,0 +1,118 @@
+#!/bin/bash
+
+# source the ciop functions (e.g. ciop-log)
+source ${ciop_job_include}
+
+mode=$(ciop-getparam mode)
+# datadir=$(ciop-getparam datadir)
+
+ciop-log INFO "mode: $mode"
+ciop-log INFO "datadir: $datadir"
+
+# define the exit codes
+SUCCESS=0
+ERR_NOINPUT=1
+ERR_NOPARAMS=2
+ERR_GDAL=4
+ERR_COPY=5
+
+# add a trap to exit gracefully
+function cleanExit ()
+{
+   local retval=$?
+   local msg=""
+   case "$retval" in
+     $SUCCESS)      msg="Processing successfully concluded";;
+     $ERR_NOPARAMS) msg="Outout format not defined";;
+     $ERR_GDAL)     msg="Graph processing of job ${JOBNAME} failed (exit code $res)";;
+     *)             msg="Unknown error";;
+   esac
+   [ "$retval" != "0" ] && ciop-log "ERROR" "Error $retval - $msg, processing aborted" || ciop-log "INFO" "$msg"
+   exit $retval
+}
+trap cleanExit EXIT
+
+# my_echo () { ciop-log INFO "$*" }
+# savdir='/application/soilfrost/bin/'
+
+datadir='input_data'
+
+# create the input directory
+INPUTDIR="$TMPDIR/$datadir"
+mkdir -p $INPUTDIR
+BINDIR="$TMPDIR/bin"
+mkdir -p $BINDIR
+
+# echo $INPUTDIR > $BINDIR/config.cfg
+
+mode=$(ciop-getparam mode)
+
+
+idl=/usr/local/bin/idl
+export LM_LICENSE_FILE=1700@idl.terradue.int
+
+case $mode in
+    "refcat")
+
+	OUTPUTDIR=$TMPDIR/outputs/
+	mkdir -p $OUTPUTDIR
+
+	ciop-log INFO "*** creating reference catalogue ***"
+
+	while read -r inputurl; do
+	     ciop-log INFO "ciop-copy -r 3 -f -O $INPUTDIR $inputurl"
+	     ciop-copy -r 3 -f -O $INPUTDIR $inputurl >/dev/null
+	done
+
+	cp /application/soilfrost/bin/datastac1.sav $BINDIR
+	savfil="$BINDIR/datastac1.sav"
+
+	# $interp $script average $INPUTDIR $OUTPUTDIR $avg_fname $start_date $end_date > /dev/null 2>&1
+        # $idl "-vm=$savfil" -arg "$INPUTDIR"
+	ciop-log INFO "contents of input directory <$INPUTDIR>:"
+	ciop-log INFO "$(ls $INPUTDIR)"
+        ciop-log INFO  "HOME=/tmp $idl -rt=$savfil -arg $INPUTDIR"
+        HOME=/tmp $idl "-rt=$savfil" -arg "$INPUTDIR"
+
+        # my_echo mv "${savdir}/${datadir}" $OUTPUTDIR/.
+        # my_echo mv "${savdir}/${datadir}.sav" $OUTPUTDIR/.
+        # my_echo mv "${savdir}/Ref_BS_${datadir}.sav" $OUTPUTDIR/.
+
+	ciop-log INFO "contents of directory <$BINDIR>:"
+	ciop-log INFO "$(ls $BINDIR)"
+
+	# ciop-log INFO "mv ${BINDIR}/${datadir} $OUTPUTDIR/."
+        ciop-log INFO "mv ${BINDIR}/${datadir}.sav $OUTPUTDIR/."
+        mv ${BINDIR}/${datadir}.sav $OUTPUTDIR/.
+        ciop-log INFO "mv ${BINDIR}/Ref_BS_${datadir}.sav $OUTPUTDIR/."
+        mv ${BINDIR}/Ref_BS_${datadir}.sav $OUTPUTDIR/.
+
+	ciop-publish $OUTPUTDIR/*
+	;;
+
+    "products")
+
+	# OUTPUTDIR="$BINDIR/S3_tif/"
+	# mkdir -p $OUTPUTDIR
+
+
+	while read -r inputurl; do
+	     ciop-log INFO "ciop-copy -r 3 -f -O $BINDIR $inputurl"
+	     ciop-copy -r 3 -f -O $BINDIR $inputurl >/dev/null
+	done
+
+	cp /application/soilfrost/bin/s_test1.sav $BINDIR
+	savfil="$BINDIR/s_test1.sav"
+	mkdir -p $BINDIR/S3_tif
+
+        ciop-log INFO  "HOME=/tmp $idl -rt=$savfil -arg $INPUTDIR"
+        HOME=/tmp $idl "-rt=$savfil" -arg "$INPUTDIR"
+
+	ciop-publish -m $BINDIR/S3_tif/*
+
+	;;
+    *)
+	ciop-log WARN "unknown mode $mode"
+	exit 1
+esac
+exit 0
