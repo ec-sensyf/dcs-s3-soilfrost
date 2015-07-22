@@ -13,6 +13,8 @@ dstdir = None
 dummy = False
 demfile = None
 
+idl_bin = '/usr/local/bin/idl'
+
 if env['USER'] == 'mapred':
     import cioppy
     ciop = cioppy.Cioppy()
@@ -32,7 +34,6 @@ if env['USER'] == 'mapred':
     publish = ciop.publish
     permadir = '/application/soilfrost/permanent'
     bindir = '/application/soilfrost/bin'
-    idl_bin = '/usr/local/bin/idl'
 else:
     def LOGINFO(x): print("[INFO]CP:" + x)
     params = {
