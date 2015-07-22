@@ -1,16 +1,155 @@
-<?xml version="1.0" encoding="us-ascii"?>
-<application xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" id="application">
+<application id="soilfrost">
+  <!--
+    *
+    *  Templates
+    *
+  -->
   <jobTemplates>
-    <jobTemplate id="template">
-      <streamingExecutable>/application/node/run</streamingExecutable>
+    <jobTemplate id="jt_bogus">
+      <streamingExecutable>/application/soilfrost/bin/copy_one</streamingExecutable>
+      <defaultParameters>
+	<!-- <parameter id="datadir" scope="runtime" title="t" abstract="a">SenSyF_S3_data</parameter> -->
+	<!-- <parameter id="toy-parameter">Second Parameter</parameter> -->
+      </defaultParameters>
+      <defaultJobconf>
+        <property id="mapred.task.timeout">3600000</property> <!-- in milliseconds -->
+	<property id="ciop.job.max.tasks">1</property>
+      </defaultJobconf>
+    </jobTemplate>
+    <jobTemplate id="jt_echo">
+      <streamingExecutable>/application/soilfrost/bin/run_echo</streamingExecutable>
+      <defaultParameters>
+        <parameter id="toyparam">FirstParam</parameter>
+      </defaultParameters>
+      <defaultJobconf>
+        <property id="mapred.task.timeout">3600000</property> <!-- in milliseconds -->
+        <property id="ciop.job.max.tasks">1</property>
+      </defaultJobconf>
+    </jobTemplate>
+    <!--
+      * Job template for node 1: Matching (figure out which inputs must be processed together)
+    -->
+    <jobTemplate id="jt_match">
+      <streamingExecutable>/application/soilfrost/bin/run_matching</streamingExecutable>
+      <defaultParameters>
+        <parameter id="toyparam">FirstParam</parameter>
+      </defaultParameters>
+      <defaultJobconf>
+        <property id="mapred.task.timeout">3600000</property> <!-- in milliseconds -->
+	<property id="ciop.job.max.tasks">4</property>
+      </defaultJobconf>
+    </jobTemplate>
+    <!--
+      * Job template for node 2: Geocoding
+    -->
+    <jobTemplate id="jt_geocode">
+      <streamingExecutable>/application/soilfrost/bin/geocoder.py</streamingExecutable>
+      <defaultParameters>
+	<parameter id="demfile">S3_dem_10m.tiff</parameter>
+	<parameter id="startdate"
+                scope="runtime"
+                abstract="The first date to consider data from for the soilfrost service"
+                title="start date for soilfrost service">2014-04-01</parameter>
+	<parameter id="enddate"
+                scope="runtime"
+                abstract="The last date to consider data from for the soilfrost service"
+                title="end date for soilfrost service">2015-04-01</parameter>
+	<!-- <parameter id="toy-parameter">Second Parameter</parameter> -->
+      </defaultParameters>
+      <defaultJobconf>
+        <property id="mapred.task.timeout">3600000</property> <!-- in milliseconds -->
+	<property id="ciop.job.max.tasks">4</property>
+      </defaultJobconf>
+    </jobTemplate>
+    <!--
+      * Job template for nodes 3 and 4
+    -->
+    <jobTemplate id="jt_s3">
+      <streamingExecutable>/application/soilfrost/bin/run_s3</streamingExecutable>
+      <defaultParameters>
+        <!-- parameters not defined here won't be visible below -->
+	<parameter id="mode">refcat</parameter>
+	<parameter id="datadir">SenSyF_S3_data</parameter>
+      </defaultParameters>
+      <defaultJobconf>
+        <property id="mapred.task.timeout">3600000</property> <!-- in milliseconds -->
+	<property id="ciop.job.max.tasks">1</property>
+      </defaultJobconf>
     </jobTemplate>
   </jobTemplates>
-    <workflow id="workflow" title="Basic Workflow" abstract="Basic archetype workflow for a python application">
+  <!--
+    *
+    *  Workflow
+    *
+  -->
+  <workflow id="wf_soilfrost" title="SenSyF Service S3 soil frost" abstract="To be provided">
     <workflowVersion>1.0</workflowVersion>
-    <node id="node">
-      <job id="template"/>
+    <node id="bogus">
+      <job id="jt_echo"/>	<!-- as defined above -->
       <sources>
-        <source refid="string:list">input-1,input-2</source>
+	<!-- <source refid="file:urls">/application/soilfrost/input.urls</source> -->
+        <!-- <source refid="cas:series">http://catalogue.terradue.int/catalogue/search/ASA_WSM_1P/description</source>  -->
+	<!-- <source refid="file:urls">/application/soilfrost/permanent/input_grdh.urls</source> -->
+        <source refid="cas:series">https://data2.terradue.com/eop/sentinel1/series/tromso/description</source>
+      </sources>
+      <parameters>
+	<parameter id="mode">refcat</parameter>
+      </parameters>
+    </node>
+    <!--
+      * Node 1: Matching
+    -->
+    <node id="match">
+      <job id="jt_match"/>	<!-- as defined above -->
+      <sources>
+        <source refid="cas:series">https://data2.terradue.com/eop/sentinel1/series/tromso/description</source>
+      </sources>
+      <parameters/>
+    </node>
+    <!--
+      * Node 2: Geocoding
+    -->
+    <node id="geocode">
+      <job id="jt_geocode"/>	<!-- as defined above -->
+      <sources>
+        <!--<source refid="cas:series">http://catalogue.terradue.int/catalogue/search/ASA_WSM_1P/description</source> -->
+	<!-- <source refid="file:urls"> /application/soilfrost/input.urls </source> -->
+	<!-- <source refid="file:urls">/application/soilfrost/permanent/input_grdh.gurls</source> -->
+	<source refid="wf:node">match</source>
+      </sources>
+      <parameters/>
+    </node>
+    <!--
+      * Node 3: Creating reference catalogue
+    -->
+    <node id="refcat">
+      <job id="jt_s3"/>	<!-- as defined above -->
+      <sources>
+	<source refid="wf:node">geocode</source>
+      </sources>
+      <parameters>
+	<parameter id="mode">refcat</parameter>
+      </parameters>
+    </node>
+    <!--
+      * Node 4: Creating products
+    -->
+    <node id="products">
+      <job id="jt_s3"/>	<!-- as defined above -->
+      <sources>
+	<source refid="wf:node">refcat</source>
+      </sources>
+      <parameters>
+	<parameter id="mode">products</parameter>
+      </parameters>
+    </node>
+    <!--
+      * Node 5: Dummy end node
+    -->
+    <node id="end">
+      <job id="jt_echo"/>	<!-- as defined above -->
+      <sources>
+	<source refid="wf:node">products</source>
       </sources>
     </node>
   </workflow>
