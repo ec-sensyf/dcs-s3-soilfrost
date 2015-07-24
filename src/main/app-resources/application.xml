@@ -45,7 +45,7 @@
     <jobTemplate id="jt_geocode">
       <streamingExecutable>/application/soilfrost/bin/geocoder.py</streamingExecutable>
       <defaultParameters>
-	<parameter id="demfile">S3_dem_10m.tiff</parameter>
+	<parameter id="demfile">S3_dem_10m_geoid_correction_already_applied.tiff</parameter>
 	<parameter id="startdate"
                 scope="runtime"
                 abstract="The first date to consider data from for the soilfrost service"
@@ -58,7 +58,7 @@
       </defaultParameters>
       <defaultJobconf>
         <property id="mapred.task.timeout">3600000</property> <!-- in milliseconds -->
-	<property id="ciop.job.max.tasks">4</property>
+	<property id="ciop.job.max.tasks">1</property>
       </defaultJobconf>
     </jobTemplate>
     <!--
