@@ -6,7 +6,7 @@ import re
 import sys
 import shutil
 
-from subprocess import Popen, PIPE
+from subprocess import Popen, PIPE, check_output
 
 env = os.environ
 dstdir = None
@@ -16,6 +16,9 @@ demfile = None
 idl_bin = '/usr/local/bin/idl'
 
 if env['USER'] == 'mapred':
+    env['TMPDIR'] = '/tmp/mapred-soilfrost/'
+    env['LM_LICENSE_FILE'] = '1700@idl.terradue.int'
+
     import cioppy
     ciop = cioppy.Cioppy()
     def LOGINFO(x): ciop.log("INFO", "CP:" + x)
@@ -66,7 +69,29 @@ else:
     bindir = os.path.join(env['HOME'], 'src/s3/soilfrost/bin')
 
 def p_copy(url, dstdir):
-    res = copy(url, dstdir)
+    from glob import glob
+    if url[0] == '/' or url[:4] == 'file':
+        res = copy(url, dstdir)
+    else:
+        if env['USER'] == 'mapred':
+            # anything complex may (for now) have to go through a call to opensearch-client
+            url = check_output(['opensearch-client', url, 'enclosure'])
+            url = url.rstrip(' \n')
+            LOGINFO("Getting data from <{}>".format(url))
+            res = copy(url, dstdir)
+            # rr = glob(res + '/*.SAFE')
+            # if len(rr) > 1: raise ValueError("Not sure how this happens")
+            # if len(rr) == 1: res = rr
+
+    if res[-4:] == '.zip':
+        LOGINFO("Unpacking " + res)
+        out = check_output(['unzip', res, '-d', dstdir])
+        m = re.search(r"creating: ([\w/-]+.SAFE)/", out)
+        if not m: raise ValueError("unexpected output from unzip: <" + out + ">")
+        os.unlink(res)
+        res = m.group(1)
+        LOGINFO("Unpacked to " + res)
+        return res
     try:
         m = re.search(r"\[done\] url '([^']+)' > local '([^']+)'", res)
         if m is None: raise ValueError("Unexpected output from copy: " + res)
@@ -118,12 +143,14 @@ def cluster_main():
 
     mkdir_p(srcdir)
     mkdir_p(dstdir)
+    cleandir(srcdir)
+    cleandir(dstdir)
 
     if len(os.path.split(demfile)[0]) == 0: demfile = os.path.join(permadir, demfile)
 
     cwd = None
     if True:                    # env['USER'] in [ 'mapred', 'sensyf-s3' ] or '-s' in sys.argv:
-        print "Running geocoding from .sav file"
+        LOGINFO("Running geocoding from .sav file")
         savfile = os.path.join(bindir, 'geocode_main.sav')
         cmd_args = [idl_bin, '-rt=' + savfile, '-args', demfile, dstdir]
     else:                       # doesn't work 
@@ -141,15 +168,18 @@ def cluster_main():
         if len(line) == 0: break
         url = line.rstrip(' \n/')
         if len(url) == 0: continue
+        LOGINFO("Got input line <{0}>".format(url))
         parts = url.split(';')
         if len(parts) == 0:
             stop
         elif len(parts) == 1:
             grd = p_copy(url, srcdir)
             idl.stdin.write(grd + "\n")
+            LOGINFO("Passed line <{0}> to IDL".format(grd))
         else:
             grds = [p_copy(url, srcdir) for url in parts]
             idl.stdin.write(':'.join(grds) + "\n")
+            LOGINFO("Passed line <{0}> to IDL".format(':'.join(grds)))
         sys.stdout.flush()
 
         idl.stdin.flush()
