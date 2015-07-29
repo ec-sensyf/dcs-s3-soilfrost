@@ -16,7 +16,7 @@ demfile = None
 idl_bin = '/usr/local/bin/idl'
 
 if env['USER'] == 'mapred':
-    env['TMPDIR'] = '/tmp/mapred-soilfrost/'
+    # env['TMPDIR'] = '/tmp/mapred-soilfrost/'
     env['LM_LICENSE_FILE'] = '1700@idl.terradue.int'
 
     import cioppy
@@ -35,7 +35,7 @@ if env['USER'] == 'mapred':
             LOGINFO("Publishing path " + pth)
             ciop.publish(pth, metalink=False)
     publish = ciop.publish
-    permadir = '/application/soilfrost/permanent'
+    permadir = '/data/public'
     bindir = '/application/soilfrost/bin'
 else:
     def LOGINFO(x): print("[INFO]CP:" + x)
@@ -86,7 +86,7 @@ def p_copy(url, dstdir):
     if res[-4:] == '.zip':
         LOGINFO("Unpacking " + res)
         out = check_output(['unzip', res, '-d', dstdir])
-        m = re.search(r"creating: ([\w/-]+.SAFE)/", out)
+        m = re.search(r"creating: ([\w/.-]+.SAFE)/", out)
         if not m: raise ValueError("unexpected output from unzip: <" + out + ">")
         os.unlink(res)
         res = m.group(1)
@@ -190,7 +190,10 @@ def cluster_main():
     if idl.wait() != 0:
         print "IDL closed with error"
 
-    publish(dstdir, recursive=True, metalink=False)
+    for product in os.listdir(dstdir):
+        pname = os.path.join(dstdir, product) + '.tgz'
+        out = check_output(['/bin/tar', 'zcvf', pname, '-C', dstdir, product])
+        publish(pname, metalink=False)
 
 
 
