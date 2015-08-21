@@ -55,6 +55,7 @@
                 abstract="The last date to consider data from for the soilfrost service"
                 title="end date for soilfrost service">2015-04-01</parameter>
 	<!-- <parameter id="toy-parameter">Second Parameter</parameter> -->
+        <parameter id="pixelsize">42</parameter>
       </defaultParameters>
       <defaultJobconf>
         <property id="mapred.task.timeout">3600000</property> <!-- in milliseconds -->
@@ -70,6 +71,7 @@
         <!-- parameters not defined here won't be visible below -->
 	<parameter id="mode">refcat</parameter>
 	<parameter id="datadir">SenSyF_S3_data</parameter>
+	<parameter id="extra"></parameter>
       </defaultParameters>
       <defaultJobconf>
         <property id="mapred.task.timeout">3600000</property> <!-- in milliseconds -->
@@ -104,7 +106,14 @@
       <sources>
         <source refid="cas:series">https://data2.terradue.com/eop/sentinel1/series/tromso/description</source>
       </sources>
-      <parameters/>
+      <parameters>
+          <!-- opensearch parameters -->
+          <!--
+          <parameter scope="runtime" type="opensearch" target="count"
+              title="Number of scenes" abstract="Number of scenes to geocode"
+              id="count" >10</parameter> -->
+          <parameter id="count" >10</parameter>
+      </parameters>
     </node>
     <!--
       * Node 2: Geocoding
@@ -117,7 +126,9 @@
 	<!-- <source refid="file:urls">/application/soilfrost/permanent/input_grdh.gurls</source> -->
 	<source refid="wf:node">match</source>
       </sources>
-      <parameters/>
+      <parameters>
+        <parameter id="pixelsize">42</parameter>
+      </parameters>
     </node>
     <!--
       * Node 3: Creating reference catalogue
@@ -129,6 +140,7 @@
       </sources>
       <parameters>
 	<parameter id="mode">refcat</parameter>
+	<!-- <parameter id="extra">sub 1,2,3,4</parameter> -->
       </parameters>
     </node>
     <!--

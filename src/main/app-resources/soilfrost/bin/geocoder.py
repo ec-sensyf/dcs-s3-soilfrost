@@ -130,6 +130,7 @@ def cluster_main():
 
     startdate = safe_getparam('startdate', '2014-04-01')
     enddate   = safe_getparam('enddate',   '2014-04-01')
+    pixelsize = safe_getparam('pixelsize', None)
     if demfile is None:
         # demfile   = safe_getparam('demfile',  'S3_dem_geoid_correction_already_applied.tiff')
         demfile   = safe_getparam('demfile',  'S3_dem_10m_geoid_correction_already_applied.tiff')
@@ -157,6 +158,9 @@ def cluster_main():
         print "Running geocoding from .pro file"
         cwd = os.path.join(env['HOME'], 'src/SenSyF/S3/src/')
         cmd_args = ['idl', '-e', 'geocode_main', '-args', demfile, dstdir]
+
+    if pixelsize:
+        cmd_args.append('-p{0}'.format(pixelsize))
 
     idl = Popen(cmd_args, cwd=cwd, stdin=PIPE)
     # idl = Popen(['cat'], cwd=cwd, stdin=PIPE)
