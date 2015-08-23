@@ -71,7 +71,6 @@
         <!-- parameters not defined here won't be visible below -->
 	<parameter id="mode">refcat</parameter>
 	<parameter id="datadir">SenSyF_S3_data</parameter>
-	<parameter id="extra"></parameter>
       </defaultParameters>
       <defaultJobconf>
         <property id="mapred.task.timeout">3600000</property> <!-- in milliseconds -->
@@ -140,7 +139,6 @@
       </sources>
       <parameters>
 	<parameter id="mode">refcat</parameter>
-	<!-- <parameter id="extra">sub 1,2,3,4</parameter> -->
       </parameters>
     </node>
     <!--
