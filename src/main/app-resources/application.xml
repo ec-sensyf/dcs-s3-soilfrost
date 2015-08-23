@@ -85,18 +85,6 @@
   -->
   <workflow id="wf_soilfrost" title="SenSyF Service S3 soil frost" abstract="To be provided">
     <workflowVersion>1.0</workflowVersion>
-    <node id="bogus">
-      <job id="jt_echo"/>	<!-- as defined above -->
-      <sources>
-	<!-- <source refid="file:urls">/application/soilfrost/input.urls</source> -->
-        <!-- <source refid="cas:series">http://catalogue.terradue.int/catalogue/search/ASA_WSM_1P/description</source>  -->
-	<!-- <source refid="file:urls">/application/soilfrost/permanent/input_grdh.urls</source> -->
-        <source refid="cas:series">https://data2.terradue.com/eop/sentinel1/series/tromso/description</source>
-      </sources>
-      <parameters>
-	<parameter id="mode">refcat</parameter>
-      </parameters>
-    </node>
     <!--
       * Node 1: Matching
     -->
@@ -111,7 +99,7 @@
           <parameter scope="runtime" type="opensearch" target="count"
               title="Number of scenes" abstract="Number of scenes to geocode"
               id="count" >10</parameter> -->
-          <parameter id="count" >10</parameter>
+          <parameter id="count" >1000</parameter>
       </parameters>
     </node>
     <!--
@@ -126,7 +114,7 @@
 	<source refid="wf:node">match</source>
       </sources>
       <parameters>
-        <parameter id="pixelsize">42</parameter>
+        <parameter id="pixelsize">20</parameter>
       </parameters>
     </node>
     <!--
@@ -152,15 +140,6 @@
       <parameters>
 	<parameter id="mode">products</parameter>
       </parameters>
-    </node>
-    <!--
-      * Node 5: Dummy end node
-    -->
-    <node id="end">
-      <job id="jt_echo"/>	<!-- as defined above -->
-      <sources>
-	<source refid="wf:node">products</source>
-      </sources>
     </node>
   </workflow>
 </application>
