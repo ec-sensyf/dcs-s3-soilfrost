@@ -36,11 +36,12 @@ trap cleanExit EXIT
 # savdir='/application/soilfrost/bin/'
 
 datadir='input_data'
+basedir=${mapred_local_dir:-${TMPDIR:-/var/tmp/$$}}
 
 # create the input directory
-INPUTDIR="$TMPDIR/$datadir"
+INPUTDIR="$basedir/$datadir"
 mkdir -p $INPUTDIR
-BINDIR="$TMPDIR/bin"
+BINDIR="$basedir/bin"
 mkdir -p $BINDIR
 
 # echo $INPUTDIR > $BINDIR/config.cfg
@@ -54,7 +55,7 @@ export LM_LICENSE_FILE=1700@idl.terradue.int
 case $mode in
     "refcat")
 
-	OUTPUTDIR=$TMPDIR/outputs/
+	OUTPUTDIR=$basedir/outputs/
 	mkdir -p $OUTPUTDIR
 
 	ciop-log INFO "*** creating reference catalogue ***"
@@ -72,20 +73,23 @@ case $mode in
 	ciop-log INFO "contents of input directory <$INPUTDIR>:"
 	ciop-log INFO "$(ls $INPUTDIR)"
         ciop-log INFO  "HOME=/tmp $idl -rt=$savfil -arg $INPUTDIR"
-        HOME=/tmp $idl "-rt=$savfil" -arg "$INPUTDIR"
+        HOME=/tmp $idl "-rt=$savfil" -args "$INPUTDIR" "$OUTPUTDIR"
 
         # my_echo mv "${savdir}/${datadir}" $OUTPUTDIR/.
         # my_echo mv "${savdir}/${datadir}.sav" $OUTPUTDIR/.
         # my_echo mv "${savdir}/Ref_BS_${datadir}.sav" $OUTPUTDIR/.
 
-	ciop-log INFO "contents of directory <$BINDIR>:"
+	ciop-log INFO "contents of bindir directory <$BINDIR>:"
 	ciop-log INFO "$(ls $BINDIR)"
 
+	ciop-log INFO "contents of output directory <$OUTPUTDIR>:"
+	ciop-log INFO "$(ls $OUTPUTDIR)"
+
 	# ciop-log INFO "mv ${BINDIR}/${datadir} $OUTPUTDIR/."
-        ciop-log INFO "mv ${BINDIR}/${datadir}.sav $OUTPUTDIR/."
-        mv ${BINDIR}/${datadir}.sav $OUTPUTDIR/.
-        ciop-log INFO "mv ${BINDIR}/Ref_BS_${datadir}.sav $OUTPUTDIR/."
-        mv ${BINDIR}/Ref_BS_${datadir}.sav $OUTPUTDIR/.
+        # ciop-log INFO "mv ${BINDIR}/${datadir}.sav $OUTPUTDIR/."
+        # mv ${BINDIR}/${datadir}.sav $OUTPUTDIR/.
+        # ciop-log INFO "mv ${BINDIR}/Ref_BS_${datadir}.sav $OUTPUTDIR/."
+        # mv ${BINDIR}/Ref_BS_${datadir}.sav $OUTPUTDIR/.
 
 	ciop-publish $OUTPUTDIR/*
 	;;
@@ -95,20 +99,24 @@ case $mode in
 	# OUTPUTDIR="$BINDIR/S3_tif/"
 	# mkdir -p $OUTPUTDIR
 
+	INPUTDIR="$basedir"
+	OUTPUTDIR="$basedir"
 
 	while read -r inputurl; do
-	     ciop-log INFO "ciop-copy -r 3 -f -O $BINDIR $inputurl"
-	     ciop-copy -r 3 -f -O $BINDIR $inputurl >/dev/null
+	     ciop-log INFO "ciop-copy -r 3 -f -O $INPUTDIR $inputurl"
+	     ciop-copy -r 3 -f -O $INPUTDIR $inputurl
 	done
 
-	cp /application/soilfrost/bin/s_test1.sav $BINDIR
-	savfil="$BINDIR/s_test1.sav"
-	mkdir -p $BINDIR/S3_tif
+	savfil="/application/soilfrost/bin/s_test1.sav"
+	# cp /application/soilfrost/bin/s_test1.sav $BINDIR
+	# savfil="$BINDIR/s_test1.sav"
+
+	# mkdir -p $basedir/S3_tif
 
         ciop-log INFO  "HOME=/tmp $idl -rt=$savfil -arg $INPUTDIR"
-        HOME=/tmp $idl "-rt=$savfil" -arg "$INPUTDIR"
+        HOME=/tmp $idl "-rt=$savfil" -args "$INPUTDIR" "$OUTPUTDIR"
 
-	ciop-publish -m $BINDIR/S3_tif/*
+	ciop-publish -m $OUTPUTDIR/S3_tif/*
 
 	;;
     *)
