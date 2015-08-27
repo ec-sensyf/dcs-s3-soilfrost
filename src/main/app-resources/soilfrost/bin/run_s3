@@ -15,6 +15,7 @@ ERR_NOINPUT=1
 ERR_NOPARAMS=2
 ERR_GDAL=4
 ERR_COPY=5
+ERR_GSAR=7
 
 # add a trap to exit gracefully
 function cleanExit ()
@@ -24,7 +25,8 @@ function cleanExit ()
    case "$retval" in
      $SUCCESS)      msg="Processing successfully concluded";;
      $ERR_NOPARAMS) msg="Outout format not defined";;
-     $ERR_GDAL)     msg="Graph processing of job ${JOBNAME} failed (exit code $res)";;
+     $ERR_GDAL)     msg="Graph processing of job ${JOBNAME} failed (exit code $retval)";;
+     $ERR_GSAR)     msg="GSAR processing of job ${JOBNAME} failed (exit code $retval)";;
      *)             msg="Unknown error";;
    esac
    [ "$retval" != "0" ] && ciop-log "ERROR" "Error $retval - $msg, processing aborted" || ciop-log "INFO" "$msg"
@@ -41,8 +43,8 @@ basedir=${mapred_local_dir:-${TMPDIR:-/var/tmp/$$}}
 # create the input directory
 INPUTDIR="$basedir/$datadir"
 mkdir -p $INPUTDIR
-BINDIR="$basedir/bin"
-mkdir -p $BINDIR
+# BINDIR="$basedir/bin"
+# mkdir -p $BINDIR
 
 # echo $INPUTDIR > $BINDIR/config.cfg
 
@@ -65,22 +67,24 @@ case $mode in
 	     ciop-copy -r 3 -f -O $INPUTDIR $inputurl >/dev/null
 	done
 
-	cp /application/soilfrost/bin/datastac1.sav $BINDIR
-	savfil="$BINDIR/datastac1.sav"
+	# cp /application/soilfrost/bin/datastac1.sav $BINDIR
+	# savfil="$BINDIR/datastac1.sav"
+	savfil="/application/soilfrost/bin/datastac1.sav"
+	#savfil="/application/soilfrost/bin/rt_test.sav"
 
 	# $interp $script average $INPUTDIR $OUTPUTDIR $avg_fname $start_date $end_date > /dev/null 2>&1
         # $idl "-vm=$savfil" -arg "$INPUTDIR"
 	ciop-log INFO "contents of input directory <$INPUTDIR>:"
 	ciop-log INFO "$(ls $INPUTDIR)"
-        ciop-log INFO  "HOME=/tmp $idl -rt=$savfil -arg $INPUTDIR"
-        HOME=/tmp $idl "-rt=$savfil" -args "$INPUTDIR" "$OUTPUTDIR"
+        ciop-log INFO  "HOME=/tmp $idl -rt=$savfil -args $INPUTDIR $OUTPUTDIR"
+        HOME=/tmp $idl "-rt=$savfil" -args "$INPUTDIR" "$OUTPUTDIR" || exit $ERR_GSAR
 
         # my_echo mv "${savdir}/${datadir}" $OUTPUTDIR/.
         # my_echo mv "${savdir}/${datadir}.sav" $OUTPUTDIR/.
         # my_echo mv "${savdir}/Ref_BS_${datadir}.sav" $OUTPUTDIR/.
 
-	ciop-log INFO "contents of bindir directory <$BINDIR>:"
-	ciop-log INFO "$(ls $BINDIR)"
+	# ciop-log INFO "contents of bindir directory <$BINDIR>:"
+	# ciop-log INFO "$(ls $BINDIR)"
 
 	ciop-log INFO "contents of output directory <$OUTPUTDIR>:"
 	ciop-log INFO "$(ls $OUTPUTDIR)"
@@ -115,6 +119,12 @@ case $mode in
 
         ciop-log INFO  "HOME=/tmp $idl -rt=$savfil -arg $INPUTDIR"
         HOME=/tmp $idl "-rt=$savfil" -args "$INPUTDIR" "$OUTPUTDIR"
+
+        idl_exit=$?
+
+        ciop-log INFO "Exit status from IDL: $idl_exit"
+
+        [ "$idl_exit" != "0" ] && ciop-log "ERROR" "IDL Error $idl_exit - $msg, processing aborted" || ciop-log "INFO" "$msg"
 
 	ciop-publish -m $OUTPUTDIR/S3_tif/*
 
