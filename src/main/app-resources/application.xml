@@ -55,7 +55,7 @@
                 abstract="The last date to consider data from for the soilfrost service"
                 title="end date for soilfrost service">2015-04-01</parameter>
 	<!-- <parameter id="toy-parameter">Second Parameter</parameter> -->
-        <parameter id="pixelsize">42</parameter>
+        <parameter id="pixelsize">40</parameter>
       </defaultParameters>
       <defaultJobconf>
         <property id="mapred.task.timeout">3600000</property> <!-- in milliseconds -->
@@ -92,6 +92,7 @@
       <job id="jt_match"/>	<!-- as defined above -->
       <sources>
         <source refid="cas:series">https://data2.terradue.com/eop/sentinel1/series/tromso/description</source>
+        <!-- opensearch-client -p time:start=2015-04-01 -p time:end=2015-04-30 -p count=unlimited "https://data2.terradue.com/eop/sentinel1/series/tromso/search" -->
       </sources>
       <parameters>
           <!-- opensearch parameters -->
